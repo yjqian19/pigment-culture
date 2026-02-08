@@ -1,0 +1,34 @@
+{
+  "top_clusters": [
+    {
+      "object_type": "sky",
+      "count": 36,
+      "centroid_x": 13.8714,
+      "centroid_y": -10.16
+    },
+    {
+      "object_type": "water",
+      "count": 14,
+      "centroid_x": -3.2763,
+      "centroid_y": 11.8156
+    },
+    {
+      "object_type": "background",
+      "count": 13,
+      "centroid_x": 10.5575,
+      "centroid_y": 0.7955
+    },
+    {
+      "object_type": "sea",
+      "count": 8,
+      "centroid_x": -3.7715,
+      "centroid_y": 14.8287
+    },
+    {
+      "object_type": "clothing",
+      "count": 6,
+      "centroid_x": 6.5462,
+      "centroid_y": 1.0741
+    }
+  ]
+}

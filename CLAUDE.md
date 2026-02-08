@@ -12,6 +12,7 @@ Analyze blue pigments in paintings: given images in `images/`, identify the **do
 - Segmentation approach implemented in `blue_pigment_analysis.ipynb` — not yet producing correct results (outputs "No blue found" for both test images)
 - VLM approach implemented in `analyze_with_vlm.py` — uses OpenRouter + Gemini Flash to identify dominant blue objects
 - **Semantic visualization implemented in `visualize_blue_semantic.py`** — creates 2D semantic space showing how different cultures use blue in different object types
+- **Interactive web dashboard implemented in `dashboard/`** — Plotly.js-based interface for exploring 143 paintings with images, metadata, and blue pigment analysis
 - Output files stored in `output/` directory (JSON, CSV, and PNG visualizations)
 
 ## Approaches Under Consideration
@@ -53,9 +54,18 @@ output/              # Generated JSON, CSV, and visualization files
   blue_objects_with_vlm.csv              # Merged dataset for analysis
   blue_objects_semantic_visualization.png # 2D semantic visualization (416 KB, 300 DPI)
   semantic_visualization_report.md       # Comprehensive methodology & results report
+dashboard/           # Interactive web dashboard (NEW)
+  index.html                             # Main dashboard page
+  styles.css                             # Dashboard styling
+  app.js                                 # Plotly.js interactivity
+  data/
+    paintings.json                       # 143 paintings with coordinates (111 KB)
+    cluster_annotations.json             # Top 5 cluster positions (619 B)
+  images/                                # Symlink to ../images/
 blue_pigment_analysis.ipynb  # Main analysis notebook
 analyze_with_vlm.py          # VLM-based blue pigment analysis script
 visualize_blue_semantic.py   # 2D semantic visualization script
+prepare_dashboard_data.py    # Dashboard data export script (NEW)
 pyproject.toml               # Project config & dependencies
 uv.lock                      # Dependency lock file
 .env                         # API keys (gitignored, use .env.example as template)
@@ -105,6 +115,37 @@ Creates a scatter plot showing cultural patterns in blue pigment usage:
 - **Output:**
   - `output/blue_objects_semantic_visualization.png` (visualization)
   - `output/semantic_visualization_report.md` (detailed methodology & results)
+
+### Interactive Web Dashboard (`dashboard/`)
+
+Web-based interface for exploring the semantic visualization interactively:
+
+- **Technology:** Plotly.js (no backend required), vanilla JavaScript, HTML/CSS
+- **Features:**
+  - Click any point to view painting image and detailed metadata
+  - Hover tooltips with title and object type
+  - Zoom/pan controls for exploring clusters
+  - Responsive two-panel layout (plot + detail view)
+  - Top 5 cluster annotations
+  - Complete VLM analysis reasoning displayed
+
+- **Data Preparation:**
+  ```bash
+  python prepare_dashboard_data.py
+  ```
+  Exports `dashboard/data/paintings.json` and `cluster_annotations.json` from CSV
+
+- **Usage:**
+  ```bash
+  # Start local web server
+  python3 -m http.server 8000
+
+  # Open in browser
+  open http://localhost:8000/dashboard/index.html
+  ```
+
+- **Deployment:** Static HTML/CSS/JS — works on any web host (GitHub Pages, Netlify, etc.)
+- **Documentation:** See `dashboard/README.md` for full details
 
 ## Development Conventions
 

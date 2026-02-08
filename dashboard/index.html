@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue Pigment Analysis - Interactive Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Blue Pigment Analysis Dashboard</h1>
+        <p class="subtitle">Cultural Patterns in Blue Pigment Usage Across 143 Paintings</p>
+    </header>
+
+    <main class="container">
+        <!-- Left Panel: Plot -->
+        <div class="plot-panel">
+            <div id="plot"></div>
+        </div>
+
+        <!-- Right Panel: Detail -->
+        <div class="detail-panel">
+            <!-- Welcome Screen -->
+            <div id="welcome-screen" class="welcome">
+                <div class="welcome-content">
+                    <h2>👋 Welcome</h2>
+                    <p>This interactive dashboard visualizes blue pigment usage across 143 paintings from 6 cultures.</p>
+
+                    <div class="instructions">
+                        <h3>How to Use:</h3>
+                        <ul>
+                            <li><strong>Hover</strong> over any point to see the painting title and object type</li>
+                            <li><strong>Click</strong> on a point to view detailed information and the painting image</li>
+                            <li><strong>Zoom</strong> and pan using the Plotly controls in the top-right corner</li>
+                        </ul>
+                    </div>
+
+                    <div class="legend-info">
+                        <h3>Visualization Method:</h3>
+                        <p>Points are positioned using semantic similarity of blue object types (via UMAP dimensionality reduction). Similar objects cluster together.</p>
+                    </div>
+
+                    <div class="culture-legend">
+                        <h3>Cultures:</h3>
+                        <div class="culture-item">
+                            <span class="culture-dot" style="background-color: #1f77b4;"></span>
+                            <span>Japanese</span>
+                        </div>
+                        <div class="culture-item">
+                            <span class="culture-dot" style="background-color: #ff7f0e;"></span>
+                            <span>American</span>
+                        </div>
+                        <div class="culture-item">
+                            <span class="culture-dot" style="background-color: #2ca02c;"></span>
+                            <span>German</span>
+                        </div>
+                        <div class="culture-item">
+                            <span class="culture-dot" style="background-color: #d62728;"></span>
+                            <span>Australian</span>
+                        </div>
+                        <div class="culture-item">
+                            <span class="culture-dot" style="background-color: #9467bd;"></span>
+                            <span>French</span>
+                        </div>
+                        <div class="culture-item">
+                            <span class="culture-dot" style="background-color: #8c564b;"></span>
+                            <span>British</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail View -->
+            <div id="detail-view" class="detail" style="display: none;">
+                <div class="detail-header">
+                    <h2 id="detail-title">Painting Title</h2>
+                    <button id="close-detail" class="close-btn" title="Close detail view">&times;</button>
+                </div>
+
+                <div class="detail-content">
+                    <!-- Image -->
+                    <div class="image-container">
+                        <img id="detail-image" alt="Painting" />
+                        <p id="image-error" class="image-error" style="display: none;">Image not available</p>
+                    </div>
+
+                    <!-- Metadata Grid -->
+                    <div class="metadata-grid">
+                        <div class="metadata-item">
+                            <span class="label">Artist:</span>
+                            <span id="detail-artist" class="value">Unknown</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="label">Culture:</span>
+                            <span id="detail-culture" class="value">Unknown</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="label">Date:</span>
+                            <span id="detail-date" class="value">Unknown</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="label">Classification:</span>
+                            <span id="detail-classification" class="value">Unknown</span>
+                        </div>
+                    </div>
+
+                    <!-- Blue Analysis Section -->
+                    <div class="blue-analysis">
+                        <h3>Blue Pigment Analysis</h3>
+
+                        <div class="metadata-item">
+                            <span class="label">Dominant Blue Object:</span>
+                            <span id="detail-object" class="value highlight">N/A</span>
+                        </div>
+
+                        <div class="color-display">
+                            <div class="color-info">
+                                <span class="label">Blue Color:</span>
+                                <div class="color-values">
+                                    <span id="detail-color-swatch" class="color-swatch"></span>
+                                    <div class="color-codes">
+                                        <span id="detail-color-rgb" class="value">RGB: (0, 0, 0)</span>
+                                        <span id="detail-color-hex" class="value">#000000</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metadata-item">
+                            <span class="label">Coverage:</span>
+                            <span id="detail-coverage" class="value">0%</span>
+                        </div>
+
+                        <div class="metadata-item">
+                            <span class="label">Confidence:</span>
+                            <span id="detail-confidence" class="value">medium</span>
+                        </div>
+
+                        <div class="reasoning-section">
+                            <span class="label">Analysis Reasoning:</span>
+                            <p id="detail-reasoning" class="reasoning-text">N/A</p>
+                        </div>
+                    </div>
+
+                    <!-- Painting ID -->
+                    <div class="painting-id">
+                        <span class="label">Painting ID:</span>
+                        <span id="detail-id" class="value">000000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

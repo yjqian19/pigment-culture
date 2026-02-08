@@ -1,0 +1,41 @@
+# OS
+.DS_Store
+
+# Env & secrets
+.env*
+.python-version
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# ML / data science
+*.h5
+*.pkl
+*.pickle
+*.joblib
+*.pt
+*.pth
+*.onnx
+wandb/
+mlruns/
+.mypy_cache/
+
+# IDE / tools
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -51,8 +51,8 @@ output/              # Generated JSON, CSV, and visualization files
   blue_objects.json                      # Museum data (large, ~30MB)
   blue_pigment_vlm_results.json          # Raw VLM analysis results
   blue_objects_with_vlm.csv              # Merged dataset for analysis
-  blue_objects_semantic_visualization.png # 2D semantic visualization
-  semantic_validation.txt                # Validation report
+  blue_objects_semantic_visualization.png # 2D semantic visualization (416 KB, 300 DPI)
+  semantic_visualization_report.md       # Comprehensive methodology & results report
 blue_pigment_analysis.ipynb  # Main analysis notebook
 analyze_with_vlm.py          # VLM-based blue pigment analysis script
 visualize_blue_semantic.py   # 2D semantic visualization script
@@ -86,16 +86,25 @@ Creates a scatter plot showing cultural patterns in blue pigment usage:
   1. Convert object type strings to semantic embeddings using Sentence-BERT (`all-MiniLM-L6-v2`)
   2. Apply UMAP dimensionality reduction to project 384D embeddings into 2D semantic space
   3. Add deterministic jitter based on painting ID to prevent overlaps
-  4. Color points by cultural origin
+  4. Detect outliers: points far from main clusters (top 15th percentile)
+  5. Color points by cultural origin
 
 - **Features:**
   - Semantically similar objects cluster together (e.g., "water", "sea", "ocean")
   - 135 paintings from 6 cultures visualized
-  - Top 5 object types annotated at cluster centroids
+  - Top 5 object types annotated at cluster centroids (white labels)
+  - 8 outlier points annotated with yellow labels (unusual/geometric blue objects)
   - Publication-quality output (4170 × 2969 px at 300 DPI)
 
+- **Key Findings:**
+  - Japanese paintings concentrate in sky/water clusters (landscape tradition)
+  - American paintings dispersed across all object types (diverse usage)
+  - Outliers reveal geometric/abstract blue forms (rare artistic choices)
+
 - **Usage:** `python visualize_blue_semantic.py`
-- **Output:** `output/blue_objects_semantic_visualization.png`
+- **Output:**
+  - `output/blue_objects_semantic_visualization.png` (visualization)
+  - `output/semantic_visualization_report.md` (detailed methodology & results)
 
 ## Development Conventions
 

@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer
 import umap
 from pathlib import Path
+from scipy.spatial.distance import cdist
 
 # Configuration
 INPUT_FILE = "output/blue_objects_with_vlm.csv"
@@ -174,6 +175,58 @@ def create_visualization(df):
             va='center',
             bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8, edgecolor='gray'),
             zorder=100
+        )
+
+    # Identify and annotate outliers (points far from main clusters)
+    # Calculate cluster centroids for all object types with 2+ paintings
+    cluster_centroids = []
+    for obj in df['vlm_dominant_blue_object'].unique():
+        obj_df = df[df['vlm_dominant_blue_object'] == obj]
+        if len(obj_df) >= 2:  # Only consider clusters with 2+ points
+            centroid = [obj_df['umap_x'].mean(), obj_df['umap_y'].mean()]
+            cluster_centroids.append(centroid)
+
+    cluster_centroids = np.array(cluster_centroids)
+
+    # Calculate minimum distance to nearest cluster centroid for each point
+    point_coords = df[['umap_x', 'umap_y']].values
+    distances = cdist(point_coords, cluster_centroids, metric='euclidean')
+    min_distances = distances.min(axis=1)
+
+    # Identify outliers: points in the top 10th percentile of distance
+    # But exclude points that are part of the top 5 clusters (already annotated)
+    df['min_distance_to_cluster'] = min_distances
+    outlier_threshold = np.percentile(min_distances, 85)
+
+    # Get outliers excluding top 5 object types
+    outlier_df = df[
+        (df['min_distance_to_cluster'] >= outlier_threshold) &
+        (~df['vlm_dominant_blue_object'].isin(top_objects))
+    ].copy()
+
+    # Sort by distance and take top 6-8 most isolated points
+    outlier_df = outlier_df.sort_values('min_distance_to_cluster', ascending=False).head(8)
+
+    print(f"  Identified {len(outlier_df)} outlier points for annotation")
+
+    # Annotate outliers with object type
+    for idx, row in outlier_df.iterrows():
+        # Truncate long object names
+        obj_name = row['vlm_dominant_blue_object']
+        if len(obj_name) > 20:
+            obj_name = obj_name[:18] + '...'
+
+        ax.annotate(
+            obj_name,
+            xy=(row['plot_x'], row['plot_y']),
+            xytext=(10, 10),  # Offset from point
+            textcoords='offset points',
+            fontsize=7,
+            ha='left',
+            va='bottom',
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='yellow', alpha=0.7, edgecolor='gray', linewidth=0.5),
+            arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0', color='gray', linewidth=0.5),
+            zorder=99
         )
 
     # Styling

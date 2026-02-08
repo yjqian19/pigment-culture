@@ -11,7 +11,8 @@ Analyze blue pigments in paintings: given images in `images/`, identify the **do
 - Two sample images: `chinese_portrait.jpeg`, `american_portrait.jpeg`
 - Segmentation approach implemented in `blue_pigment_analysis.ipynb` — not yet producing correct results (outputs "No blue found" for both test images)
 - VLM approach implemented in `analyze_with_vlm.py` — uses OpenRouter + Gemini Flash to identify dominant blue objects
-- Output files stored in `output/` directory (JSON and CSV)
+- **Semantic visualization implemented in `visualize_blue_semantic.py`** — creates 2D semantic space showing how different cultures use blue in different object types
+- Output files stored in `output/` directory (JSON, CSV, and PNG visualizations)
 
 ## Approaches Under Consideration
 
@@ -36,9 +37,9 @@ Analyze blue pigments in paintings: given images in `images/`, identify the **do
 
 ## Technical Details
 
-- **Python version:** >= 3.10
-- **Package manager:** uv (`uv sync` to install)
-- **Key dependencies:** transformers, torch, torchvision, pillow, numpy, matplotlib, pandas
+- **Python version:** >= 3.10 (tested on 3.12.11)
+- **Package manager:** uv (`uv pip install` for dependencies)
+- **Key dependencies:** transformers, torch, torchvision, pillow, numpy, matplotlib, pandas, sentence-transformers, umap-learn
 - **HuggingFace auth:** Required for some models. Use `huggingface-cli login` locally or Colab secrets.
 - **Device:** Runs on CPU (no CUDA required), but GPU recommended for speed.
 
@@ -46,15 +47,18 @@ Analyze blue pigments in paintings: given images in `images/`, identify the **do
 
 ```
 images/              # Input painting images (jpeg/jpg/png)
-output/              # Generated JSON and CSV files
-  blue_objects.json           # Museum data (large, ~30MB)
-  blue_pigment_vlm_results.json  # Raw VLM analysis results
-  blue_objects_with_vlm.csv   # Merged dataset for analysis
+output/              # Generated JSON, CSV, and visualization files
+  blue_objects.json                      # Museum data (large, ~30MB)
+  blue_pigment_vlm_results.json          # Raw VLM analysis results
+  blue_objects_with_vlm.csv              # Merged dataset for analysis
+  blue_objects_semantic_visualization.png # 2D semantic visualization
+  semantic_validation.txt                # Validation report
 blue_pigment_analysis.ipynb  # Main analysis notebook
-analyze_with_vlm.py  # VLM-based blue pigment analysis script
-pyproject.toml       # Project config & dependencies
-uv.lock              # Dependency lock file
-.env                 # API keys (gitignored, use .env.example as template)
+analyze_with_vlm.py          # VLM-based blue pigment analysis script
+visualize_blue_semantic.py   # 2D semantic visualization script
+pyproject.toml               # Project config & dependencies
+uv.lock                      # Dependency lock file
+.env                         # API keys (gitignored, use .env.example as template)
 ```
 
 ## Color Detection Method
@@ -72,8 +76,29 @@ uv.lock              # Dependency lock file
 - VLM script matches images to objects by extracting ID from filename
 - Original data includes multiple colors per object; script selects blue with highest percentage
 
+## Visualization
+
+### 2D Semantic Visualization (`visualize_blue_semantic.py`)
+
+Creates a scatter plot showing cultural patterns in blue pigment usage:
+
+- **Methodology:**
+  1. Convert object type strings to semantic embeddings using Sentence-BERT (`all-MiniLM-L6-v2`)
+  2. Apply UMAP dimensionality reduction to project 384D embeddings into 2D semantic space
+  3. Add deterministic jitter based on painting ID to prevent overlaps
+  4. Color points by cultural origin
+
+- **Features:**
+  - Semantically similar objects cluster together (e.g., "water", "sea", "ocean")
+  - 135 paintings from 6 cultures visualized
+  - Top 5 object types annotated at cluster centroids
+  - Publication-quality output (4170 × 2969 px at 300 DPI)
+
+- **Usage:** `python visualize_blue_semantic.py`
+- **Output:** `output/blue_objects_semantic_visualization.png`
+
 ## Development Conventions
 
 - **Console output:** Keep minimal — progress tracking only, detailed results in files
 - **API keys:** Store in `.env` file (already gitignored), use `python-dotenv` to load
-- **Dependencies:** Add to `pyproject.toml`, install with `uv sync`
+- **Dependencies:** Add to `pyproject.toml`, install with `uv pip install`

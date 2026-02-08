@@ -39,3 +39,7 @@ mlruns/
 .vscode/
 *.swp
 *.swo
+
+# Images
+images/
+test_images/

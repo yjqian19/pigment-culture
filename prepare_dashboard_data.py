@@ -1,6 +1,7 @@
 """
 Prepare dashboard data by exporting CSV to JSON format for web visualization.
-Reuses functions from visualize_blue_semantic.py for coordinate generation.
+Uses same coordinate logic as visualize_blue_semantic.py: embed unique object types,
+UMAP on unique types, then map paintings to positions + jitter.
 """
 
 import json
@@ -9,6 +10,9 @@ import numpy as np
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from umap import UMAP
+
+# Match visualize_blue_semantic.py
+JITTER_PERCENT = 0.05
 
 def load_data():
     """Load and prepare painting data."""
@@ -29,14 +33,18 @@ def load_data():
     return df
 
 def generate_embeddings(df):
-    """Generate semantic embeddings for object types."""
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    object_types = df['vlm_dominant_blue_object'].tolist()
-    embeddings = model.encode(object_types, show_progress_bar=True)
-    return embeddings
+    """Generate semantic embeddings for unique object types only."""
+    model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+    unique_objects = df['vlm_dominant_blue_object'].unique()
+    embeddings_dict = {obj: model.encode(obj) for obj in unique_objects}
+    print(f"  Encoded {len(unique_objects)} unique object types")
+    return embeddings_dict
 
-def apply_umap(embeddings):
-    """Apply UMAP dimensionality reduction."""
+def apply_umap(embeddings_dict):
+    """Apply UMAP on unique object type embeddings, return object_type -> (x, y) mapping."""
+    unique_objects = list(embeddings_dict.keys())
+    embeddings_matrix = np.array([embeddings_dict[obj] for obj in unique_objects])
+
     reducer = UMAP(
         n_components=2,
         n_neighbors=15,
@@ -44,33 +52,41 @@ def apply_umap(embeddings):
         metric='cosine',
         random_state=42
     )
-    coords = reducer.fit_transform(embeddings)
-    return coords
+    umap_coords = reducer.fit_transform(embeddings_matrix)
+    object_to_coords = {obj: umap_coords[i] for i, obj in enumerate(unique_objects)}
+    return object_to_coords
 
-def add_jitter(coords, painting_ids, jitter_strength=0.05):
-    """Add deterministic jitter to prevent overlaps."""
-    np.random.seed(42)
-    jittered = coords.copy()
+def assign_coords_and_jitter(df, object_to_coords):
+    """Assign base UMAP coords to paintings, then add deterministic jitter."""
+    df = df.copy()
+    df['umap_x'] = df['vlm_dominant_blue_object'].map(lambda o: object_to_coords[o][0])
+    df['umap_y'] = df['vlm_dominant_blue_object'].map(lambda o: object_to_coords[o][1])
 
-    for i in range(len(coords)):
-        seed_value = int(painting_ids[i])
-        np.random.seed(seed_value)
-        jitter = np.random.randn(2) * jitter_strength
-        jittered[i] += jitter
+    x_range = df['umap_x'].max() - df['umap_x'].min()
+    y_range = df['umap_y'].max() - df['umap_y'].min()
+    jitter_x = x_range * JITTER_PERCENT
+    jitter_y = y_range * JITTER_PERCENT
 
-    return jittered
+    df['plot_x'] = df.apply(
+        lambda row: row['umap_x'] + np.random.RandomState(int(row['id'])).uniform(-jitter_x, jitter_x),
+        axis=1
+    )
+    df['plot_y'] = df.apply(
+        lambda row: row['umap_y'] + np.random.RandomState(int(row['id'])).uniform(-jitter_y, jitter_y),
+        axis=1
+    )
+    return df
 
-def get_top_clusters(df, coords, top_n=5):
-    """Calculate centroids for top N most common object types."""
+def get_top_clusters(df, top_n=5):
+    """Calculate centroids for top N object types (using pre-jitter UMAP coords)."""
     object_counts = df['vlm_dominant_blue_object'].value_counts()
     top_objects = object_counts.head(top_n).index.tolist()
 
     clusters = []
     for obj in top_objects:
         mask = df['vlm_dominant_blue_object'] == obj
-        obj_coords = coords[mask]
-        centroid_x = float(np.mean(obj_coords[:, 0]))
-        centroid_y = float(np.mean(obj_coords[:, 1]))
+        centroid_x = float(df.loc[mask, 'umap_x'].mean())
+        centroid_y = float(df.loc[mask, 'umap_y'].mean())
         count = int(object_counts[obj])
 
         clusters.append({
@@ -82,13 +98,11 @@ def get_top_clusters(df, coords, top_n=5):
 
     return clusters
 
-def prepare_paintings_json(df, coords):
+def prepare_paintings_json(df):
     """Convert dataframe to JSON format for dashboard."""
     paintings = []
 
-    for idx, row in df.iterrows():
-        coord_idx = df.index.get_loc(idx)
-
+    for _, row in df.iterrows():
         # Parse RGB values (columns are vlm_blue_r, vlm_blue_g, vlm_blue_b)
         r = row.get('vlm_blue_r', 128)
         g = row.get('vlm_blue_g', 128)
@@ -120,8 +134,8 @@ def prepare_paintings_json(df, coords):
             'confidence': str(row.get('vlm_confidence', 'medium')),
             'reasoning': reasoning,
             'coverage_percent': float(row.get('original_blue_percent', 0)),
-            'plot_x': round(float(coords[coord_idx, 0]), 4),
-            'plot_y': round(float(coords[coord_idx, 1]), 4)
+            'plot_x': round(float(row['plot_x']), 4),
+            'plot_y': round(float(row['plot_y']), 4)
         }
 
         paintings.append(painting)
@@ -133,20 +147,20 @@ def main():
     print("Loading data...")
     df = load_data()
 
-    print("Generating embeddings...")
-    embeddings = generate_embeddings(df)
+    print("Generating embeddings (unique object types)...")
+    embeddings_dict = generate_embeddings(df)
 
-    print("Applying UMAP...")
-    coords = apply_umap(embeddings)
+    print("Applying UMAP on unique types...")
+    object_to_coords = apply_umap(embeddings_dict)
 
-    print("Adding jitter...")
-    coords = add_jitter(coords, df['id'].values)
+    print("Assigning coords and adding jitter...")
+    df = assign_coords_and_jitter(df, object_to_coords)
 
     print("Calculating cluster annotations...")
-    clusters = get_top_clusters(df, coords, top_n=5)
+    clusters = get_top_clusters(df, top_n=5)
 
     print("Preparing paintings JSON...")
-    paintings = prepare_paintings_json(df, coords)
+    paintings = prepare_paintings_json(df)
 
     # Create output directory
     output_dir = Path('dashboard/data')

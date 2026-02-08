@@ -43,3 +43,6 @@ mlruns/
 # Images
 images/
 test_images/
+
+# Outputs
+output/

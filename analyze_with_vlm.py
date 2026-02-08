@@ -2,6 +2,7 @@
 """
 Blue pigment analysis using Vision Language Models via OpenRouter.
 Analyzes paintings to identify dominant blue objects and their RGB colors.
+Merges VLM results with existing blue_objects.json data and outputs to CSV.
 """
 
 import os
@@ -9,6 +10,7 @@ import base64
 import json
 from pathlib import Path
 import requests
+import pandas as pd
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -130,8 +132,102 @@ If there are multiple significant blue objects, choose the one that occupies the
     return analysis
 
 
+def load_blue_objects(json_path: str = "output/blue_objects.json") -> dict:
+    """Load blue_objects.json and create a dict keyed by ID for fast lookup."""
+    print(f"Loading {json_path}...")
+    with open(json_path, "r") as f:
+        objects = json.load(f)
+
+    # Create dict keyed by ID
+    objects_dict = {obj["id"]: obj for obj in objects}
+    print(f"✓ Loaded {len(objects_dict)} objects")
+    return objects_dict
+
+
+def extract_id_from_filename(filename: str) -> int:
+    """Extract object ID from filename (e.g., '147053.jpg' -> 147053)."""
+    return int(Path(filename).stem)
+
+
+def merge_and_export_csv(vlm_results: list, objects_dict: dict, output_csv: str = "output/blue_objects_with_vlm.csv"):
+    """Merge VLM results with blue_objects data and export to CSV."""
+    print("\nMerging results...")
+
+    # Ensure output directory exists
+    Path(output_csv).parent.mkdir(parents=True, exist_ok=True)
+
+    merged_data = []
+    for vlm_result in vlm_results:
+        # Extract ID from image name
+        image_name = vlm_result.get("image_name")
+        if not image_name:
+            continue
+
+        try:
+            obj_id = extract_id_from_filename(image_name)
+        except ValueError:
+            print(f"Warning: Could not extract ID from {image_name}")
+            continue
+
+        # Find matching object in blue_objects.json
+        obj = objects_dict.get(obj_id)
+        if not obj:
+            print(f"Warning: No object found with ID {obj_id}")
+            continue
+
+        # Merge data
+        merged_row = {
+            "id": obj_id,
+            "title": obj.get("title"),
+            "classification": obj.get("classification"),
+            "dated": obj.get("dated"),
+            "image_name": image_name,
+
+            # VLM results
+            "vlm_dominant_blue_object": vlm_result.get("dominant_blue_object"),
+            "vlm_blue_r": vlm_result.get("dominant_blue_rgb", [None, None, None])[0] if vlm_result.get("dominant_blue_rgb") else None,
+            "vlm_blue_g": vlm_result.get("dominant_blue_rgb", [None, None, None])[1] if vlm_result.get("dominant_blue_rgb") else None,
+            "vlm_blue_b": vlm_result.get("dominant_blue_rgb", [None, None, None])[2] if vlm_result.get("dominant_blue_rgb") else None,
+            "vlm_confidence": vlm_result.get("confidence"),
+            "vlm_reasoning": vlm_result.get("reasoning"),
+            "vlm_model": vlm_result.get("model_used"),
+            "vlm_error": vlm_result.get("error"),
+
+            # Original colors data (first blue color if available)
+            "original_blue_color": None,
+            "original_blue_percent": None,
+        }
+
+        # Extract blue color with highest percentage from original data
+        if "colors" in obj:
+            blue_colors = [c for c in obj["colors"] if c.get("hue") == "Blue"]
+            if blue_colors:
+                # Sort by percent descending and pick the most prominent blue
+                most_prominent_blue = max(blue_colors, key=lambda c: c.get("percent", 0))
+                merged_row["original_blue_color"] = most_prominent_blue.get("color")
+                merged_row["original_blue_percent"] = most_prominent_blue.get("percent")
+
+        # Artist info
+        if "people" in obj and obj["people"]:
+            artist = obj["people"][0]
+            merged_row["artist_name"] = artist.get("displayname")
+            merged_row["artist_culture"] = artist.get("culture")
+        else:
+            merged_row["artist_name"] = None
+            merged_row["artist_culture"] = None
+
+        merged_data.append(merged_row)
+
+    # Convert to DataFrame and save
+    df = pd.DataFrame(merged_data)
+    df.to_csv(output_csv, index=False)
+    print(f"✓ Merged data saved to {output_csv}")
+    print(f"  Total rows: {len(df)}")
+    return df
+
+
 def main():
-    """Main function to analyze all images in the images directory."""
+    """Main function to analyze all images and merge with blue_objects.json."""
     # Get API key from environment
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
@@ -142,15 +238,22 @@ def main():
         print("Or use Google AI Studio free tier: https://aistudio.google.com/apikey")
         return
 
+    # Load blue_objects.json
+    try:
+        objects_dict = load_blue_objects()
+    except FileNotFoundError:
+        print("Error: blue_objects.json not found")
+        return
+
     # Get all images
     images_dir = Path("images")
-    image_files = list(images_dir.glob("*.jpeg")) + list(images_dir.glob("*.jpg")) + list(images_dir.glob("*.png"))
+    image_files = list(images_dir.glob("*.jpg")) + list(images_dir.glob("*.jpeg")) + list(images_dir.glob("*.png"))
 
     if not image_files:
         print(f"No images found in {images_dir}")
         return
 
-    print(f"Found {len(image_files)} image(s)")
+    print(f"\nFound {len(image_files)} image(s)")
     print(f"Using model: google/gemini-2.5-flash")
     print("-" * 60)
 
@@ -169,13 +272,16 @@ def main():
                 "error": str(e)
             })
 
-    # Save results to JSON
-    output_file = "blue_pigment_vlm_results.json"
-    with open(output_file, "w") as f:
-        json.dump(results, f, indent=2)
-
     print("-" * 60)
-    print(f"\n✓ Results saved to {output_file}")
+
+    # Save VLM results to JSON
+    vlm_json = "blue_pigment_vlm_results.json"
+    with open(vlm_json, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"\n✓ VLM results saved to {vlm_json}")
+
+    # Merge with blue_objects.json and export to CSV
+    merge_and_export_csv(results, objects_dict)
 
 
 if __name__ == "__main__":

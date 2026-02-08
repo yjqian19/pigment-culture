@@ -1,0 +1,26 @@
+[
+  {
+    "dominant_blue_object": "background/wall",
+    "dominant_blue_rgb": [
+      100,
+      120,
+      130
+    ],
+    "confidence": "high",
+    "reasoning": "The background, which appears to be a wall with window bars, occupies the largest area of blue in the painting. While the bow is also blue, its area is significantly smaller. The background's blue is a muted, somewhat desaturated blue-gray.",
+    "image_name": "american_portrait.jpeg",
+    "model_used": "google/gemini-2.5-flash"
+  },
+  {
+    "dominant_blue_object": "robe",
+    "dominant_blue_rgb": [
+      80,
+      100,
+      110
+    ],
+    "confidence": "high",
+    "reasoning": "The blue robe worn by the figure occupies the vast majority of the painting's area and is the most visually prominent blue element. While the hat also contains blue, its area is significantly smaller than the robe. The RGB values are an approximation of the muted, somewhat desaturated blue-grey color of the robe, which shows signs of age and fading.",
+    "image_name": "chinese_portrait.jpeg",
+    "model_used": "google/gemini-2.5-flash"
+  }
+]

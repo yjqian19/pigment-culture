@@ -11,6 +11,9 @@ const CULTURE_COLORS = {
 // Global data storage
 let paintingsData = [];
 let annotationsData = {};
+let clusterAnnotations = [];  // Plotly annotation objects
+let labelsVisible = true;
+let selectedPaintingId = null;
 
 /**
  * Load JSON data files
@@ -56,17 +59,16 @@ function createPlot(paintings, annotations) {
             mode: 'markers',
             type: 'scatter',
             name: culture,
-            customdata: culturePaintings.map(p => p.id),
-            hovertemplate: '<b>%{text}</b><br>Object: %{customdata[1]}<extra></extra>',
-            text: culturePaintings.map(p => p.title),
+            text: culturePaintings.map(p => p.dominant_blue_object),
             customdata: culturePaintings.map(p => [p.id, p.dominant_blue_object]),
+            hovertemplate: '<b>%{text}</b><extra></extra>',
             marker: {
                 size: 10,
                 color: CULTURE_COLORS[culture],
                 opacity: 0.7,
                 line: {
-                    color: 'white',
-                    width: 1
+                    color: culturePaintings.map(() => 'white'),
+                    width: culturePaintings.map(() => 1)
                 }
             }
         };
@@ -75,7 +77,7 @@ function createPlot(paintings, annotations) {
     });
 
     // Create annotation objects for top clusters
-    const plotAnnotations = annotations.top_clusters.map(cluster => ({
+    clusterAnnotations = annotations.top_clusters.map(cluster => ({
         x: cluster.centroid_x,
         y: cluster.centroid_y,
         text: `<b>${cluster.object_type}</b><br>(n=${cluster.count})`,
@@ -120,7 +122,7 @@ function createPlot(paintings, annotations) {
             title: ''
         },
         hovermode: 'closest',
-        annotations: plotAnnotations,
+        annotations: clusterAnnotations,
         plot_bgcolor: '#fafafa',
         paper_bgcolor: '#fff',
         margin: { l: 40, r: 40, t: 40, b: 40 }
@@ -139,6 +141,47 @@ function createPlot(paintings, annotations) {
 }
 
 /**
+ * Toggle cluster labels visibility
+ */
+function toggleClusterLabels() {
+    labelsVisible = !labelsVisible;
+    const plotDiv = document.getElementById('plot');
+    const btn = document.getElementById('toggle-labels');
+
+    const newAnnotations = labelsVisible ? clusterAnnotations : [];
+    Plotly.relayout(plotDiv, { annotations: newAnnotations });
+
+    btn.classList.toggle('active', labelsVisible);
+}
+
+/**
+ * Highlight selected point with black border, reset others
+ */
+function highlightSelectedPoint(paintingId) {
+    const plotDiv = document.getElementById('plot');
+    const traces = plotDiv.data;
+    const update = { 'marker.line.color': [], 'marker.line.width': [] };
+
+    for (let i = 0; i < traces.length; i++) {
+        const ids = traces[i].customdata.map(d => d[0]);
+        const lineColors = ids.map(id => id === paintingId ? '#000' : 'white');
+        const lineWidths = ids.map(id => id === paintingId ? 3 : 1);
+
+        update['marker.line.color'].push(lineColors);
+        update['marker.line.width'].push(lineWidths);
+    }
+
+    // Restyle all traces
+    const traceIndices = traces.map((_, i) => i);
+    for (let i = 0; i < traces.length; i++) {
+        Plotly.restyle(plotDiv, {
+            'marker.line.color': [update['marker.line.color'][i]],
+            'marker.line.width': [update['marker.line.width'][i]]
+        }, [i]);
+    }
+}
+
+/**
  * Attach click handler to plot
  */
 function attachClickHandler(paintings) {
@@ -153,6 +196,8 @@ function attachClickHandler(paintings) {
             const painting = paintings.find(p => p.id === paintingId);
 
             if (painting) {
+                selectedPaintingId = paintingId;
+                highlightSelectedPoint(paintingId);
                 showPaintingDetail(painting);
             }
         }
@@ -182,13 +227,19 @@ function showPaintingDetail(painting) {
     document.getElementById('detail-color-hex').textContent = painting.blue_hex;
     document.getElementById('detail-color-swatch').style.backgroundColor = painting.blue_hex;
 
-    // Coverage and confidence
-    const coveragePercent = (painting.coverage_percent * 100).toFixed(2);
-    document.getElementById('detail-coverage').textContent = `${coveragePercent}%`;
+    // VLM Reasoning (inside collapsible)
     document.getElementById('detail-confidence').textContent = painting.confidence || 'medium';
-
-    // Reasoning
     document.getElementById('detail-reasoning').textContent = painting.reasoning || 'N/A';
+
+    // Collapse the reasoning dropdown by default
+    document.querySelector('.vlm-reasoning-dropdown').removeAttribute('open');
+
+    // API Color section
+    const apiColor = painting.original_blue_color || '';
+    document.getElementById('detail-api-swatch').style.backgroundColor = apiColor || '#ccc';
+    document.getElementById('detail-api-hex').textContent = apiColor || 'N/A';
+    const coveragePercent = (painting.coverage_percent * 100).toFixed(2);
+    document.getElementById('detail-api-coverage').textContent = `Coverage: ${coveragePercent}%`;
 
     // Load image
     const img = document.getElementById('detail-image');
@@ -209,11 +260,17 @@ function showPaintingDetail(painting) {
 }
 
 /**
- * Close detail view
+ * Close detail view and clear selection
  */
 function closeDetailView() {
     document.getElementById('detail-view').style.display = 'none';
     document.getElementById('welcome-screen').style.display = 'block';
+
+    // Clear selection highlight
+    if (selectedPaintingId !== null) {
+        selectedPaintingId = null;
+        highlightSelectedPoint(null);  // Reset all to white
+    }
 }
 
 /**
@@ -239,6 +296,9 @@ async function init() {
 
         // Attach close button handler
         document.getElementById('close-detail').addEventListener('click', closeDetailView);
+
+        // Attach toggle labels handler
+        document.getElementById('toggle-labels').addEventListener('click', toggleClusterLabels);
 
         console.log('Dashboard initialized successfully');
     } catch (error) {

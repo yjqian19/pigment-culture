@@ -67,14 +67,19 @@ def assign_coords_and_jitter(df, object_to_coords):
     jitter_x = x_range * JITTER_PERCENT
     jitter_y = y_range * JITTER_PERCENT
 
-    df['plot_x'] = df.apply(
-        lambda row: row['umap_x'] + np.random.RandomState(int(row['id'])).uniform(-jitter_x, jitter_x),
-        axis=1
-    )
-    df['plot_y'] = df.apply(
-        lambda row: row['umap_y'] + np.random.RandomState(int(row['id'])).uniform(-jitter_y, jitter_y),
-        axis=1
-    )
+    # Draw both x and y jitter from a single RNG per painting
+    # to get 2D cluster-like scatter (not a diagonal line)
+    def _jitter_row(row):
+        rng = np.random.RandomState(int(row['id']))
+        angle = rng.uniform(0, 2 * np.pi)
+        radius = rng.uniform(0, 1) ** 0.5  # sqrt for uniform area distribution
+        dx = radius * np.cos(angle) * jitter_x
+        dy = radius * np.sin(angle) * jitter_y
+        return pd.Series({'plot_x': row['umap_x'] + dx, 'plot_y': row['umap_y'] + dy})
+
+    jittered = df.apply(_jitter_row, axis=1)
+    df['plot_x'] = jittered['plot_x']
+    df['plot_y'] = jittered['plot_y']
     return df
 
 def get_top_clusters(df, top_n=5):
@@ -120,6 +125,11 @@ def prepare_paintings_json(df):
         if len(reasoning) > 500:
             reasoning = reasoning[:497] + '...'
 
+        # Original API color
+        original_color = str(row.get('original_blue_color', ''))
+        if original_color == 'nan':
+            original_color = ''
+
         painting = {
             'id': int(row['id']),
             'title': str(row.get('title', 'Untitled')),
@@ -133,6 +143,7 @@ def prepare_paintings_json(df):
             'blue_hex': blue_hex,
             'confidence': str(row.get('vlm_confidence', 'medium')),
             'reasoning': reasoning,
+            'original_blue_color': original_color,
             'coverage_percent': float(row.get('original_blue_percent', 0)),
             'plot_x': round(float(row['plot_x']), 4),
             'plot_y': round(float(row['plot_y']), 4)

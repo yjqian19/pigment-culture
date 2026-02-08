@@ -15,21 +15,22 @@ body {
 /* Header */
 header {
     background-color: #fff;
-    border-bottom: 2px solid #e0e0e0;
-    padding: 1.5rem 2rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #e0e0e0;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
 }
 
 header h1 {
     font-size: 1.75rem;
     font-weight: 600;
     color: #1a1a1a;
-    margin-bottom: 0.25rem;
 }
 
 .subtitle {
-    font-size: 0.95rem;
-    color: #666;
+    font-size: 0.85rem;
+    color: #999;
 }
 
 /* Main Container */
@@ -37,15 +38,45 @@ header h1 {
     display: grid;
     grid-template-columns: 60% 40%;
     gap: 0;
-    height: calc(100vh - 120px);
+    height: 100vh;
     background-color: #fff;
 }
 
 /* Plot Panel */
 .plot-panel {
-    padding: 1rem;
-    border-right: 2px solid #e0e0e0;
+    padding: 0.5rem;
+    border-right: 1px solid #e0e0e0;
     overflow: hidden;
+    position: relative;
+}
+
+.plot-controls {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 10;
+}
+
+.toggle-btn {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 500;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: rgba(240, 240, 240, 0.9);
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+    border-color: #999;
+}
+
+.toggle-btn.active {
+    background-color: rgba(31, 119, 180, 0.9);
+    color: #fff;
+    border-color: #1f77b4;
 }
 
 #plot {
@@ -285,11 +316,59 @@ header h1 {
     color: #555;
 }
 
+/* VLM Reasoning Dropdown */
+.vlm-reasoning-dropdown {
+    margin-top: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.vlm-reasoning-toggle {
+    padding: 0.75rem 1rem;
+    background-color: #f5f5f5;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.vlm-reasoning-toggle:hover {
+    background-color: #eee;
+}
+
+.vlm-reasoning-toggle::before {
+    content: '▶';
+    font-size: 0.7rem;
+    transition: transform 0.2s;
+}
+
+.vlm-reasoning-dropdown[open] .vlm-reasoning-toggle::before {
+    transform: rotate(90deg);
+}
+
+/* Hide default marker */
+.vlm-reasoning-toggle::-webkit-details-marker {
+    display: none;
+}
+
+.vlm-reasoning-content {
+    padding: 1rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.vlm-reasoning-content .metadata-item {
+    margin-bottom: 0.75rem;
+}
+
 /* Reasoning Section */
 .reasoning-section {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e0e0e0;
+    margin-top: 0.5rem;
 }
 
 .reasoning-text {
@@ -300,6 +379,35 @@ header h1 {
     border-radius: 4px;
     font-size: 0.95rem;
     line-height: 1.6;
+    color: #555;
+}
+
+/* API Color Subsection (inside Blue Pigment Analysis) */
+.api-color-subsection {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.api-color-row {
+    margin-top: 0.5rem;
+}
+
+.api-color-row .color-values {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.api-color-row .color-codes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.api-color-row .color-codes .value {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
     color: #555;
 }
 

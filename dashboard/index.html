@@ -8,14 +8,12 @@
     <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 </head>
 <body>
-    <header>
-        <h1>Blue Pigment Analysis Dashboard</h1>
-        <p class="subtitle">Cultural Patterns in Blue Pigment Usage Across 143 Paintings</p>
-    </header>
-
     <main class="container">
         <!-- Left Panel: Plot -->
         <div class="plot-panel">
+            <div class="plot-controls">
+                <button id="toggle-labels" class="toggle-btn active" title="Toggle cluster labels">Cluster Labels</button>
+            </div>
             <div id="plot"></div>
         </div>
 
@@ -38,35 +36,7 @@
 
                     <div class="legend-info">
                         <h3>Visualization Method:</h3>
-                        <p>Points are positioned using semantic similarity of blue object types (via UMAP dimensionality reduction). Similar objects cluster together.</p>
-                    </div>
-
-                    <div class="culture-legend">
-                        <h3>Cultures:</h3>
-                        <div class="culture-item">
-                            <span class="culture-dot" style="background-color: #1f77b4;"></span>
-                            <span>Japanese</span>
-                        </div>
-                        <div class="culture-item">
-                            <span class="culture-dot" style="background-color: #ff7f0e;"></span>
-                            <span>American</span>
-                        </div>
-                        <div class="culture-item">
-                            <span class="culture-dot" style="background-color: #2ca02c;"></span>
-                            <span>German</span>
-                        </div>
-                        <div class="culture-item">
-                            <span class="culture-dot" style="background-color: #d62728;"></span>
-                            <span>Australian</span>
-                        </div>
-                        <div class="culture-item">
-                            <span class="culture-dot" style="background-color: #9467bd;"></span>
-                            <span>French</span>
-                        </div>
-                        <div class="culture-item">
-                            <span class="culture-dot" style="background-color: #8c564b;"></span>
-                            <span>British</span>
-                        </div>
+                        <p>Points are positioned using semantic similarity of blue object types (via UMAP dimensionality reduction). Similar objects cluster together. Colors indicate cultural origin.</p>
                     </div>
                 </div>
             </div>
@@ -105,7 +75,7 @@
                         </div>
                     </div>
 
-                    <!-- Blue Analysis Section -->
+                    <!-- Blue Pigment Analysis Section (VLM) -->
                     <div class="blue-analysis">
                         <h3>Blue Pigment Analysis</h3>
 
@@ -116,7 +86,7 @@
 
                         <div class="color-display">
                             <div class="color-info">
-                                <span class="label">Blue Color:</span>
+                                <span class="label">VLM Identified Color:</span>
                                 <div class="color-values">
                                     <span id="detail-color-swatch" class="color-swatch"></span>
                                     <div class="color-codes">
@@ -127,19 +97,33 @@
                             </div>
                         </div>
 
-                        <div class="metadata-item">
-                            <span class="label">Coverage:</span>
-                            <span id="detail-coverage" class="value">0%</span>
-                        </div>
+                        <!-- Collapsible VLM Reasoning -->
+                        <details class="vlm-reasoning-dropdown">
+                            <summary class="vlm-reasoning-toggle">VLM Reasoning</summary>
+                            <div class="vlm-reasoning-content">
+                                <div class="metadata-item">
+                                    <span class="label">Confidence:</span>
+                                    <span id="detail-confidence" class="value">medium</span>
+                                </div>
+                                <div class="reasoning-section">
+                                    <span class="label">Analysis:</span>
+                                    <p id="detail-reasoning" class="reasoning-text">N/A</p>
+                                </div>
+                            </div>
+                        </details>
 
-                        <div class="metadata-item">
-                            <span class="label">Confidence:</span>
-                            <span id="detail-confidence" class="value">medium</span>
-                        </div>
-
-                        <div class="reasoning-section">
-                            <span class="label">Analysis Reasoning:</span>
-                            <p id="detail-reasoning" class="reasoning-text">N/A</p>
+                        <!-- API Color (inside Blue Pigment Analysis) -->
+                        <div class="api-color-subsection">
+                            <span class="label">API Color</span>
+                            <div class="api-color-row">
+                                <div class="color-values">
+                                    <span id="detail-api-swatch" class="color-swatch"></span>
+                                    <div class="color-codes">
+                                        <span id="detail-api-hex" class="value">#000000</span>
+                                        <span id="detail-api-coverage" class="value">Coverage: 0%</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

@@ -93,7 +93,6 @@ If there are multiple significant blue objects, choose the one that occupies the
     }
 
     # Make API request
-    print(f"Analyzing {image_name}...")
     response = requests.post(
         "https://openrouter.ai/api/v1/chat/completions",
         headers=headers,
@@ -159,19 +158,12 @@ def main():
     results = []
     for image_path in sorted(image_files):
         try:
+            print(f"Analyzing {image_path.name}...")
             analysis = analyze_blue_pigment(str(image_path), api_key)
             results.append(analysis)
 
-            # Print results
-            print(f"\n✓ {analysis['image_name']}")
-            print(f"  Object: {analysis.get('dominant_blue_object', 'N/A')}")
-            print(f"  RGB: {analysis.get('dominant_blue_rgb', 'N/A')}")
-            print(f"  Confidence: {analysis.get('confidence', 'N/A')}")
-            if 'reasoning' in analysis:
-                print(f"  Reasoning: {analysis['reasoning']}")
-
         except Exception as e:
-            print(f"\n✗ {image_path.name}: Error - {str(e)}")
+            print(f"Error analyzing {image_path.name}: {str(e)}")
             results.append({
                 "image_name": image_path.name,
                 "error": str(e)
